@@ -16,6 +16,8 @@ You must install the wasmtime dynamic libs before running code using this packag
 
 The idea is to be able to run code just like the `wasmtime-go` package, except without needing CGo.
 
+The following example does not yet work...
+
 ```go
 package main
 
@@ -73,6 +75,17 @@ func check(e error) {
     }
 }
 ```
+
+## TODO to make the above example run:
+
+- [X] `NewEngine()`
+- [X] `NewStore()`
+- [X] `Wat2Wasm()`
+- [X] `NewModule()`
+- [ ] `WrapFunc()`
+- [ ] `NewInstance()`
+- [ ] `GetFunc()`
+- [ ] `Call()`
 
 ## Credits
 
