@@ -1,6 +1,12 @@
 # wasmtime-purego
 
-Go wrappers for [Wasmtime](https://github.com/bytecodealliance/wasmtime) using [purego](https://github.com/ebitengine/purego).
+This package in a experiment to rewrite the Go wrappers for [Wasmtime](https://github.com/bytecodealliance/wasmtime) using [purego](https://github.com/ebitengine/purego).
+
+Why?
+
+- no more cgo, so projects like envoy and k8s can use wasmtime
+- dynamic linking to wasmtime could reduce update fragility since the C interface is being used for integration anyhow.
+- should be able to run on linux, macos, and windows making cross-compilation much easier without needing a builder container
 
 ## Installation
 
@@ -67,3 +73,9 @@ func check(e error) {
     }
 }
 ```
+
+## Credits
+
+The code in this package is a combination of code modified from the https://github.com/bytecodealliance/wasmtime-go package, along with purego code taken from https://github.com/kelindar/search
+
+Thanks everyone!
