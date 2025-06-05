@@ -18,9 +18,11 @@ var wasm_engine_new func() uintptr
 var wasm_engine_delete func(ptr uintptr)
 var wasmtime_store_new func(ptr uintptr, idx int) uintptr
 var wasmtime_store_delete func(ptr uintptr)
-var wasmtime_module_new func(ptr uintptr, data []byte, size int, rtn uintptr) uintptr
+var wasmtime_module_new func(ptr uintptr, data []byte, size int, rtn *uintptr) uintptr
 var wasmtime_module_delete func(ptr uintptr)
 var wasmtime_error_delete func(ptr uintptr)
+var wasmtime_wat2wasm func(wat string, size int, retVec *wasm_byte_vec_t) uintptr
+var wasm_byte_vec_delete func(vec *wasm_byte_vec_t)
 
 func init() {
 	libpath, err := findWasmtime()
@@ -39,6 +41,8 @@ func init() {
 	purego.RegisterLibFunc(&wasmtime_module_new, libptr, "wasmtime_module_new")
 	purego.RegisterLibFunc(&wasmtime_module_delete, libptr, "wasmtime_module_delete")
 	purego.RegisterLibFunc(&wasmtime_error_delete, libptr, "wasmtime_error_delete")
+	purego.RegisterLibFunc(&wasmtime_wat2wasm, libptr, "wasmtime_wat2wasm")
+	purego.RegisterLibFunc(&wasm_byte_vec_delete, libptr, "wasm_byte_vec_delete")
 }
 
 // findWasmtime searches for the dynamic library in standard system paths.
