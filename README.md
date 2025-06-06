@@ -82,16 +82,16 @@ func check(e error) {
 - [X] `NewStore()`
 - [X] `Wat2Wasm()`
 - [X] `NewModule()`
-- [ ] `WrapFunc()`
+- [X] `WrapFunc()`
     - [X] `ValType`
     - [X] `ValKind`
-    - [ ] `Val`
-    - [ ] `Func`
-    - [ ] `FuncType`
-    - [ ] `Trap`
+    - [X] `Val`
+    - [X] `Func`
+    - [X] `FuncType`
+    - [X] `Trap`
     - [X] `shims`
-    - [ ] `Caller`
-    - [ ] `Error`
+    - [X] `Caller`
+    - [X] `Error`
 - [ ] `NewInstance()`
     - [ ] `Extern`
     - [ ] `ImportType`
