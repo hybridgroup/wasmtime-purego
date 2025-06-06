@@ -21,7 +21,7 @@ func NewModule(engine *Engine, wasm []byte) (*Module, error) {
 	runtime.KeepAlive(wasm)
 
 	if err != 0 {
-		return nil, mkError(unsafe.Pointer(err))
+		return nil, mkError(err)
 	}
 
 	return mkModule(unsafe.Pointer(ptr)), nil
@@ -33,6 +33,15 @@ func mkModule(ptr unsafe.Pointer) *Module {
 		module.Close()
 	})
 	return module
+}
+
+func (m *Module) ptr() uintptr {
+	ret := m._ptr
+	if ret == nil {
+		panic("object has been closed already")
+	}
+	//maybeGC()
+	return uintptr(ret)
 }
 
 // Close will deallocate this module's state explicitly.

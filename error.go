@@ -2,14 +2,13 @@ package wasmtime
 
 import (
 	"runtime"
-	"unsafe"
 )
 
 type Error struct {
-	_ptr unsafe.Pointer //*C.wasmtime_error_t
+	_ptr uintptr //*C.wasmtime_error_t
 }
 
-func mkError(ptr unsafe.Pointer) *Error {
+func mkError(ptr uintptr) *Error {
 	err := &Error{_ptr: ptr}
 	runtime.SetFinalizer(err, func(err *Error) {
 		err.Close()
@@ -21,12 +20,12 @@ func mkError(ptr unsafe.Pointer) *Error {
 //
 // For more information see the documentation for engine.Close()
 func (e *Error) Close() {
-	if e._ptr == nil {
+	if e._ptr == uintptr(0) {
 		return
 	}
 	runtime.SetFinalizer(e, nil)
 	wasmtime_error_delete(uintptr(e._ptr))
-	e._ptr = nil
+	e._ptr = uintptr(0)
 }
 
 func (e *Error) Error() string {

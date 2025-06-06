@@ -103,7 +103,7 @@ func goTrampolineNew(
 		defer func() { lastPanic = recover() }()
 		results, trap = entry.callback(caller, params)
 		if trap != nil {
-			if trap._ptr == nil {
+			if trap._ptr == uintptr(0) {
 				panic("returned an already-returned trap")
 			}
 			return
@@ -126,7 +126,7 @@ func goTrampolineNew(
 	if trap != nil {
 		runtime.SetFinalizer(trap, nil)
 		ret := trap.ptr()
-		trap._ptr = nil
+		trap._ptr = uintptr(0)
 		return uintptr(ret)
 	}
 
@@ -310,8 +310,8 @@ func goTrampolineWrap(
 			if val != nil {
 				runtime.SetFinalizer(val, nil)
 				ret := val._ptr
-				val._ptr = nil
-				if ret == nil {
+				val._ptr = uintptr(0)
+				if ret == uintptr(0) {
 					data.lastPanic = "cannot return trap twice"
 					return uintptr(0)
 				} else {
@@ -330,10 +330,63 @@ func mkFunc(val *wasmtime_func_t) *Func {
 	return &Func{unsafe.Pointer(val)}
 }
 
+// Implementation of the `AsExtern` interface for `Func`
+func (f *Func) AsExtern() wasmtime_extern_t {
+	ret := wasmtime_extern_t{kind: WASMTIME_EXTERN_FUNC}
+	go_wasmtime_extern_func_set(&ret, uintptr(f.val))
+	return ret
+}
+
 // Implementation of the `Storelike` interface for `Caller`.
 func (c *Caller) Context() unsafe.Pointer {
 	if c.ptr == nil {
 		panic("cannot use caller after host function returns")
 	}
 	return unsafe.Pointer(wasmtime_caller_context(uintptr(c.ptr)))
+}
+
+// Shim function that's expected to wrap any invocations of WebAssembly from Go
+// itself.
+//
+// This is used to handle traps and error returns from any invocation of
+// WebAssembly. This will also automatically propagate panics that happen within
+// Go from one end back to this original invocation point.
+//
+// The `store` object is the context being used for the invocation, and `wasm`
+// is the closure which will internally execute WebAssembly. A trap pointer is
+// provided to the closure and it's expected that the closure returns an error.
+func enterWasm(store Storelike, wasm func(**wasm_trap_t) uintptr) error {
+	// Load the internal `storeData` that our `store` references, which is
+	// used for handling panics which we are going to use here.
+	data := getDataInStore(store)
+
+	var trap *wasm_trap_t
+	err := wasm(&trap)
+
+	// Take ownership of any returned values to ensure we properly run
+	// destructors for them.
+	var wrappedTrap *Trap
+	var wrappedError error
+	if trap != nil {
+		wrappedTrap = mkTrap(uintptr(unsafe.Pointer(trap)))
+	}
+	if err != uintptr(0) {
+		wrappedError = mkError(err)
+	}
+
+	// Check to see if wasm panicked, and if it did then we need to
+	// propagate that. Note that this happens after we take ownership of
+	// return values to ensure they're cleaned up properly.
+	if data.lastPanic != nil {
+		lastPanic := data.lastPanic
+		data.lastPanic = nil
+		panic(lastPanic)
+	}
+
+	// If there wasn't a panic then we determine whether to return the trap
+	// or the error.
+	if wrappedTrap != nil {
+		return wrappedTrap
+	}
+	return wrappedError
 }

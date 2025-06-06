@@ -26,5 +26,5 @@ func Wat2Wasm(wat string) ([]byte, error) {
 		return ret, nil
 	}
 
-	return nil, mkError(unsafe.Pointer(err))
+	return nil, mkError(err)
 }

@@ -5,12 +5,23 @@ import (
 	"unsafe"
 )
 
-type wasm_trap_t struct{}
+// typedef wasm_trap_t *(*wasmtime_func_callback_t)(
+//     void *env, wasmtime_caller_t *caller, const wasmtime_val_t *args,
+//     size_t nargs, wasmtime_val_t *results, size_t nresults);
+
+type wasm_trap_t struct {
+	env      unsafe.Pointer // C.wasm_trap_t
+	caller   unsafe.Pointer // C.wasm_caller_t
+	args     unsafe.Pointer // *C.wasm_val_t
+	nargs    uint32         // C.size_t
+	results  unsafe.Pointer // *C.wasm_val_t
+	nresults uint32         // C.size_t
+}
 
 // Trap is the trap instruction which represents the occurrence of a trap.
 // Traps are bubbled up through nested instruction sequences, ultimately reducing the entire program to a single trap instruction, signalling abrupt termination.
 type Trap struct {
-	_ptr unsafe.Pointer // *C.wasm_trap_t
+	_ptr uintptr // *C.wasm_trap_t
 }
 
 type wasm_frame_t struct{}
@@ -19,7 +30,7 @@ type wasm_frame_t struct{}
 // hold the values of its locals (including arguments) in the order corresponding to their static local indices,
 // and a reference to the function’s own module instance
 type Frame struct {
-	_ptr   unsafe.Pointer // *C.wasm_frame_t
+	_ptr   uintptr // *C.wasm_frame_t
 	_owner interface{}
 }
 
@@ -60,17 +71,17 @@ func NewTrap(message string) *Trap {
 	return mkTrap(ptr)
 }
 
-func mkTrap(ptr *wasm_trap_t) *Trap {
-	trap := &Trap{_ptr: unsafe.Pointer(ptr)}
+func mkTrap(ptr uintptr) *Trap {
+	trap := &Trap{_ptr: ptr}
 	runtime.SetFinalizer(trap, func(trap *Trap) {
-		wasm_trap_delete(uintptr(trap._ptr))
+		wasm_trap_delete(trap._ptr)
 	})
 	return trap
 }
 
-func (t *Trap) ptr() unsafe.Pointer { //*C.wasm_trap_t {
+func (t *Trap) ptr() uintptr { //*C.wasm_trap_t {
 	ret := t._ptr
-	if ret == nil {
+	if ret == uintptr(0) {
 		panic("object has been closed already")
 	}
 	//maybeGC()
@@ -81,12 +92,12 @@ func (t *Trap) ptr() unsafe.Pointer { //*C.wasm_trap_t {
 //
 // For more information see the documentation for engine.Close()
 func (t *Trap) Close() {
-	if t._ptr == nil {
+	if t._ptr == uintptr(0) {
 		return
 	}
 	runtime.SetFinalizer(t, nil)
 	wasm_trap_delete(uintptr(t._ptr))
-	t._ptr = nil
+	t._ptr = uintptr(0)
 }
 
 // Message returns the message of the `Trap`
@@ -153,13 +164,14 @@ func (t *Trap) Frames() []*Frame {
 	return nil // no frames yet
 }
 
-func (f *Frame) ptr() *wasm_frame_t {
+func (f *Frame) ptr() uintptr {
 	ret := f._ptr
-	if ret == nil {
+	if ret == uintptr(0) {
 		panic("object has been closed already")
 	}
 	//maybeGC()
-	return (*wasm_frame_t)(ret)
+	return ret
+
 }
 
 // FuncIndex returns the function index in the wasm module that this frame represents

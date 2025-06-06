@@ -33,7 +33,7 @@ var wasm_functype_delete func(ptr uintptr)            // *wasm_functype_t
 var wasmtime_externref_data func(ptr uintptr) uintptr // returns *interface{} (externref data)
 var wasmtime_func_new func(store uintptr, ty uintptr, callback uintptr, env int, wrap int, ret *wasmtime_func_t)
 var wasmtime_caller_context func(caller uintptr) uintptr
-var wasmtime_trap_new func(message string, size int) *wasm_trap_t
+var wasmtime_trap_new func(message string, size int) uintptr
 var wasm_trap_delete func(ptr uintptr)
 var wasmtime_val_unroot func(store uintptr, val uintptr) uintptr // returns *wasmtime_val_t
 var wasm_functype_params func(ptr uintptr) uintptr
@@ -42,6 +42,16 @@ var wasm_externtype_delete func(ptr uintptr)                    // ExternType
 var wasm_functype_as_externtype_const func(ptr uintptr) uintptr //*wasm_externtype_t // ExternType
 var wasmtime_context_get_data func(ptr uintptr) uintptr         // returns *interface{} (context data)
 var wasm_externtype_as_functype func(ptr uintptr) uintptr       // ExternType
+var wasmtime_extern_delete func(ptr uintptr)                    // ExternType
+var wasmtime_extern_type func(ctx uintptr, ptr uintptr) uintptr // returns *wasm_externtype_t
+var wasmtime_instance_new func(
+	store uintptr,
+	module uintptr,
+	imports *wasmtime_extern_t,
+	len int,
+	instance *wasmtime_instance_t,
+	trap **wasm_trap_t,
+) uintptr // returns *wasmtime_error_t
 
 var libshimsptr uintptr
 var go_wasmtime_val_i32_set func(ptr *wasmtime_val_t, val int32)
@@ -54,8 +64,10 @@ var go_wasmtime_val_i32_get func(ptr *wasmtime_val_t) int32
 var go_wasmtime_val_i64_get func(ptr *wasmtime_val_t) int64
 var go_wasmtime_val_f32_get func(ptr *wasmtime_val_t) float32
 var go_wasmtime_val_f64_get func(ptr *wasmtime_val_t) float64
-var go_wasmtime_val_funcref_get func(ptr *wasmtime_val_t) *wasmtime_func_t // *Func
-var go_wasmtime_val_externref_get func(ptr *wasmtime_val_t) uintptr        // interface{}
+var go_wasmtime_val_funcref_get func(ptr *wasmtime_val_t) *wasmtime_func_t        // *Func
+var go_wasmtime_val_externref_get func(ptr *wasmtime_val_t) uintptr               // interface{}
+var go_wasmtime_extern_func_get func(ptr *wasmtime_extern_t) uintptr              // returns *wasmtime_func_t
+var go_wasmtime_extern_func_set func(ptr *wasmtime_extern_t, val uintptr) uintptr // returns *wasmtime_error_t
 
 func init() {
 	libpath, err := findWasmtime()
@@ -95,6 +107,9 @@ func init() {
 	purego.RegisterLibFunc(&wasm_functype_as_externtype_const, libptr, "wasm_functype_as_externtype_const")
 	purego.RegisterLibFunc(&wasmtime_context_get_data, libptr, "wasmtime_context_get_data")
 	purego.RegisterLibFunc(&wasm_externtype_as_functype, libptr, "wasm_externtype_as_functype")
+	purego.RegisterLibFunc(&wasmtime_extern_delete, libptr, "wasmtime_extern_delete")
+	purego.RegisterLibFunc(&wasmtime_extern_type, libptr, "wasmtime_extern_type")
+	purego.RegisterLibFunc(&wasmtime_instance_new, libptr, "wasmtime_instance_new")
 
 	libshims, err := findWasmtimeShims()
 	if err != nil {
@@ -116,6 +131,8 @@ func init() {
 	purego.RegisterLibFunc(&go_wasmtime_val_f64_get, libshimsptr, "go_wasmtime_val_f64_get")
 	purego.RegisterLibFunc(&go_wasmtime_val_funcref_get, libshimsptr, "go_wasmtime_val_funcref_get")
 	purego.RegisterLibFunc(&go_wasmtime_val_externref_get, libshimsptr, "go_wasmtime_val_externref_get")
+	purego.RegisterLibFunc(&go_wasmtime_extern_func_get, libshimsptr, "go_wasmtime_extern_func_get")
+	purego.RegisterLibFunc(&go_wasmtime_extern_func_set, libshimsptr, "go_wasmtime_extern_func_set")
 }
 
 // findWasmtime searches for the dynamic library in standard system paths.
