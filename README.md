@@ -89,7 +89,7 @@ func check(e error) {
     - [ ] `Func`
     - [ ] `FuncType`
     - [ ] `Trap`
-    - [ ] `shims`? or some way to handle `union`
+    - [X] `shims`
     - [ ] `Caller`
     - [ ] `Error`
 - [ ] `NewInstance()`

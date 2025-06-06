@@ -27,6 +27,20 @@ var wasm_valtype_new func(kind uint8) uintptr
 var wasm_valtype_kind func(ptr uintptr) uint8
 var wasm_valtype_delete func(ptr uintptr)
 
+var libshimsptr uintptr
+var go_wasmtime_val_i32_set func(ptr uintptr, val int32)
+var go_wasmtime_val_i64_set func(ptr uintptr, val int64)
+var go_wasmtime_val_f32_set func(ptr uintptr, val float32)
+var go_wasmtime_val_f64_set func(ptr uintptr, val float64)
+var go_wasmtime_val_funcref_set func(ptr uintptr, val uintptr)   //val *Func)
+var go_wasmtime_val_externref_set func(ptr uintptr, val uintptr) //val interface{})
+var go_wasmtime_val_i32_get func(ptr uintptr) int32
+var go_wasmtime_val_i64_get func(ptr uintptr) int64
+var go_wasmtime_val_f32_get func(ptr uintptr) float32
+var go_wasmtime_val_f64_get func(ptr uintptr) float64
+var go_wasmtime_val_funcref_get func(ptr uintptr) uintptr   // *Func
+var go_wasmtime_val_externref_get func(ptr uintptr) uintptr // interface{}
+
 func init() {
 	libpath, err := findWasmtime()
 	if err != nil {
@@ -49,6 +63,27 @@ func init() {
 	purego.RegisterLibFunc(&wasm_valtype_new, libptr, "wasm_valtype_new")
 	purego.RegisterLibFunc(&wasm_valtype_kind, libptr, "wasm_valtype_kind")
 	purego.RegisterLibFunc(&wasm_valtype_delete, libptr, "wasm_valtype_delete")
+
+	libshims, err := findWasmtimeShims()
+	if err != nil {
+		panic(err)
+	}
+	if libshimsptr, err = load(libshims); err != nil {
+		panic(err)
+	}
+
+	purego.RegisterLibFunc(&go_wasmtime_val_i32_set, libshimsptr, "go_wasmtime_val_i32_set")
+	purego.RegisterLibFunc(&go_wasmtime_val_i64_set, libshimsptr, "go_wasmtime_val_i64_set")
+	purego.RegisterLibFunc(&go_wasmtime_val_f32_set, libshimsptr, "go_wasmtime_val_f32_set")
+	purego.RegisterLibFunc(&go_wasmtime_val_f64_set, libshimsptr, "go_wasmtime_val_f64_set")
+	purego.RegisterLibFunc(&go_wasmtime_val_funcref_set, libshimsptr, "go_wasmtime_val_funcref_set")
+	purego.RegisterLibFunc(&go_wasmtime_val_externref_set, libshimsptr, "go_wasmtime_val_externref_set")
+	purego.RegisterLibFunc(&go_wasmtime_val_i32_get, libshimsptr, "go_wasmtime_val_i32_get")
+	purego.RegisterLibFunc(&go_wasmtime_val_i64_get, libshimsptr, "go_wasmtime_val_i64_get")
+	purego.RegisterLibFunc(&go_wasmtime_val_f32_get, libshimsptr, "go_wasmtime_val_f32_get")
+	purego.RegisterLibFunc(&go_wasmtime_val_f64_get, libshimsptr, "go_wasmtime_val_f64_get")
+	purego.RegisterLibFunc(&go_wasmtime_val_funcref_get, libshimsptr, "go_wasmtime_val_funcref_get")
+	purego.RegisterLibFunc(&go_wasmtime_val_externref_get, libshimsptr, "go_wasmtime_val_externref_get")
 }
 
 // findWasmtime searches for the dynamic library in standard system paths.
@@ -61,6 +96,19 @@ func findWasmtime() (string, error) {
 		return findLibrary("libwasmtime.dylib", runtime.GOOS)
 	default:
 		return findLibrary("libwasmtime.so", runtime.GOOS)
+	}
+}
+
+// findWasmtimeShims searches for the dynamic library in standard system paths.
+func findWasmtimeShims() (string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		// TODO: also handle libwasmtime.dll.a?
+		return findLibrary("wasmtime-shims.dll", runtime.GOOS)
+	case "darwin":
+		return findLibrary("libwasmtime-shims.dylib", runtime.GOOS)
+	default:
+		return findLibrary("libwasmtime-shims.so", runtime.GOOS)
 	}
 }
 
