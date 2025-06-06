@@ -23,6 +23,9 @@ var wasmtime_module_delete func(ptr uintptr)
 var wasmtime_error_delete func(ptr uintptr)
 var wasmtime_wat2wasm func(wat string, size int, retVec *wasm_byte_vec_t) uintptr
 var wasm_byte_vec_delete func(vec *wasm_byte_vec_t)
+var wasm_valtype_new func(kind uint8) uintptr
+var wasm_valtype_kind func(ptr uintptr) uint8
+var wasm_valtype_delete func(ptr uintptr)
 
 func init() {
 	libpath, err := findWasmtime()
@@ -43,13 +46,16 @@ func init() {
 	purego.RegisterLibFunc(&wasmtime_error_delete, libptr, "wasmtime_error_delete")
 	purego.RegisterLibFunc(&wasmtime_wat2wasm, libptr, "wasmtime_wat2wasm")
 	purego.RegisterLibFunc(&wasm_byte_vec_delete, libptr, "wasm_byte_vec_delete")
+	purego.RegisterLibFunc(&wasm_valtype_new, libptr, "wasm_valtype_new")
+	purego.RegisterLibFunc(&wasm_valtype_kind, libptr, "wasm_valtype_kind")
+	purego.RegisterLibFunc(&wasm_valtype_delete, libptr, "wasm_valtype_delete")
 }
 
 // findWasmtime searches for the dynamic library in standard system paths.
 func findWasmtime() (string, error) {
 	switch runtime.GOOS {
 	case "windows":
-		// TODO: also handle libwasmtime.dll.a
+		// TODO: also handle libwasmtime.dll.a?
 		return findLibrary("wasmtime.dll", runtime.GOOS)
 	case "darwin":
 		return findLibrary("libwasmtime.dylib", runtime.GOOS)
