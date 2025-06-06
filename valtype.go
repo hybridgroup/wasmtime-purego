@@ -47,19 +47,24 @@ type wasm_valtype_vec_t struct {
 	data *unsafe.Pointer // *C.wasm_valtype_t
 }
 
+type wasm_valtype_t struct {
+	_kind uint8   // C.wasm_valkind_t
+	_     [3]byte // C.wasm_valtype_reserved_t
+}
+
 // ValType means one of the value types, which classify the individual values that WebAssembly code can compute with and the values that a variable accepts.
 type ValType struct {
-	_ptr   unsafe.Pointer //*C.wasm_valtype_t
+	_ptr   *wasm_valtype_t
 	_owner interface{}
 }
 
 // NewValType creates a new `ValType` with the `kind` provided
 func NewValType(kind ValKind) *ValType {
 	ptr := wasm_valtype_new(uint8(kind))
-	return mkValType(unsafe.Pointer(ptr), nil)
+	return mkValType(ptr, nil)
 }
 
-func mkValType(ptr unsafe.Pointer, owner interface{}) *ValType {
+func mkValType(ptr *wasm_valtype_t, owner interface{}) *ValType {
 	valtype := &ValType{_ptr: ptr, _owner: owner}
 	if owner == nil {
 		runtime.SetFinalizer(valtype, func(valtype *ValType) {
@@ -71,7 +76,7 @@ func mkValType(ptr unsafe.Pointer, owner interface{}) *ValType {
 
 // Kind returns the corresponding `ValKind` for this `ValType`
 func (t *ValType) Kind() ValKind {
-	ret := ValKind(wasm_valtype_kind(uintptr(t.ptr())))
+	ret := ValKind(wasm_valtype_kind(t.ptr()))
 	runtime.KeepAlive(t)
 	return ret
 }
@@ -82,7 +87,7 @@ func (t *ValType) String() string {
 	return t.Kind().String()
 }
 
-func (t *ValType) ptr() unsafe.Pointer {
+func (t *ValType) ptr() *wasm_valtype_t {
 	ret := t._ptr
 	if ret == nil {
 		panic("object has been closed already")
@@ -99,6 +104,6 @@ func (ty *ValType) Close() {
 		return
 	}
 	runtime.SetFinalizer(ty, nil)
-	wasm_valtype_delete(uintptr(ty._ptr))
+	wasm_valtype_delete(ty._ptr)
 	ty._ptr = nil
 }
