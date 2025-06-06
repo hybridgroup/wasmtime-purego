@@ -29,6 +29,10 @@ jobs:
                 tar xf wasmtime-dev-x86_64-linux-c-api.tar.xz -C c-api --strip-components=1
                 sudo cp c-api/lib/*.so /usr/local/lib/
 
+            - name: Install Wasmtime Shims Library
+              run: |
+                sudo cp "${GITHUB_WORKSPACE}/shims/libwasmtime-shims.so" /usr/local/lib/
+
             - name: Install dependencies
               run: go mod download
 
