@@ -83,7 +83,18 @@ func check(e error) {
 - [X] `Wat2Wasm()`
 - [X] `NewModule()`
 - [ ] `WrapFunc()`
+    - [X] `ValType`
+    - [X] `ValKind`
+    - [ ] `Val`
+    - [ ] `Func`
+    - [ ] `FuncType`
+    - [ ] `Trap`
+    - [ ] `shims`? or some way to handle `union`
+    - [ ] `Caller`
+    - [ ] `Error`
 - [ ] `NewInstance()`
+    - [ ] `Extern`
+    - [ ] `ImportType`
 - [ ] `GetFunc()`
 - [ ] `Call()`
 
