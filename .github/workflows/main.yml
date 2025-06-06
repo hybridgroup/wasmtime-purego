@@ -1,0 +1,36 @@
+name: Test and Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                go-version: '1.24.2'
+
+            - name: Install Wasmtime C API
+              run: |
+                curl -LO https://github.com/bytecodealliance/wasmtime/releases/download/dev/wasmtime-dev-x86_64-linux-c-api.tar.xz
+                mkdir c-api
+                tar xf wasmtime-dev-x86_64-linux-c-api.tar.xz -C c-api --strip-components=1
+                sudo cp c-api/lib/*.so /usr/local/lib/
+
+            - name: Install dependencies
+              run: go mod download
+
+            - name: Run tests
+              run: go test -v ./...
