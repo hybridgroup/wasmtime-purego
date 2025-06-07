@@ -39,5 +39,5 @@ func TestFuncType(t *testing.T) {
 	require.NotNil(t, ty2)
 	require.Nil(t, ty.AsExternType().GlobalType())
 	require.Nil(t, ty.AsExternType().MemoryType())
-	// require.Nil(t, ty.AsExternType().TableType())
+	require.Nil(t, ty.AsExternType().TableType())
 }

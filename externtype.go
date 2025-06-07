@@ -75,15 +75,15 @@ func (ty *ExternType) GlobalType() *GlobalType {
 	return mkGlobalType(ptr, ty.owner())
 }
 
-// // TableType returns the underlying `TableType` for this `ExternType` if it's a *table* type.
-// // Otherwise returns `nil`.
-// func (ty *ExternType) TableType() *TableType {
-// 	ptr := wasm_externtype_as_tabletype(ty.ptr())
-// 	if ptr == nil {
-// 		return nil
-// 	}
-// 	return mkTableType(ptr, ty.owner())
-// }
+// TableType returns the underlying `TableType` for this `ExternType` if it's a *table* type.
+// Otherwise returns `nil`.
+func (ty *ExternType) TableType() *TableType {
+	ptr := wasm_externtype_as_tabletype(ty.ptr())
+	if ptr == uintptr(0) {
+		return nil
+	}
+	return mkTableType(ptr, ty.owner())
+}
 
 // MemoryType returns the underlying `MemoryType` for this `ExternType` if it's a *memory* type.
 // Otherwise returns `nil`.
