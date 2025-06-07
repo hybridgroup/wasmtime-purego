@@ -59,6 +59,14 @@ var wasm_globaltype_delete func(ptr uintptr)                                    
 var wasm_externtype_as_globaltype func(ptr uintptr) uintptr                                 // returns *wasm_globaltype_t
 var wasm_externtype_as_functype_const func(ptr uintptr) uintptr                             // returns *wasm_functype_t
 var wasm_globaltype_as_externtype_const func(ptr uintptr) uintptr                           // returns *wasm_externtype_t
+var wasmtime_memorytype_new func(minimum uint64, hasMax bool, max uint64, is64bit bool, shared bool) uintptr
+var wasmtime_memorytype_minimum func(ptr uintptr) uint32
+var wasmtime_memorytype_maximum func(ptr uintptr, size *uint64) bool // returns bool, size uint32
+var wasmtime_memorytype_is64 func(ptr uintptr) bool
+var wasmtime_memorytype_isshared func(ptr uintptr) bool
+var wasm_memorytype_as_externtype_const func(ptr uintptr) uintptr // returns *wasm_externtype_t
+var wasm_memorytype_delete func(ptr uintptr)                      // *wasm_memorytype_t
+var wasm_externtype_as_memorytype func(ptr uintptr) uintptr       // returns *wasm_memorytype_t
 
 var libshimsptr uintptr
 var go_wasmtime_val_i32_set func(ptr *wasmtime_val_t, val int32)
@@ -124,6 +132,14 @@ func init() {
 	purego.RegisterLibFunc(&wasm_externtype_as_globaltype, libptr, "wasm_externtype_as_globaltype")
 	purego.RegisterLibFunc(&wasm_externtype_as_functype_const, libptr, "wasm_externtype_as_functype_const")
 	purego.RegisterLibFunc(&wasm_globaltype_as_externtype_const, libptr, "wasm_globaltype_as_externtype_const")
+	purego.RegisterLibFunc(&wasmtime_memorytype_new, libptr, "wasmtime_memorytype_new")
+	purego.RegisterLibFunc(&wasmtime_memorytype_minimum, libptr, "wasmtime_memorytype_minimum")
+	purego.RegisterLibFunc(&wasmtime_memorytype_maximum, libptr, "wasmtime_memorytype_maximum")
+	purego.RegisterLibFunc(&wasmtime_memorytype_is64, libptr, "wasmtime_memorytype_is64")
+	purego.RegisterLibFunc(&wasmtime_memorytype_isshared, libptr, "wasmtime_memorytype_isshared")
+	purego.RegisterLibFunc(&wasm_memorytype_as_externtype_const, libptr, "wasm_memorytype_as_externtype_const")
+	purego.RegisterLibFunc(&wasm_memorytype_delete, libptr, "wasm_memorytype_delete")
+	purego.RegisterLibFunc(&wasm_externtype_as_memorytype, libptr, "wasm_externtype_as_memorytype")
 
 	libshims, err := findWasmtimeShims()
 	if err != nil {
