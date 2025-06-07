@@ -51,7 +51,14 @@ var wasmtime_instance_new func(
 	len int,
 	instance *wasmtime_instance_t,
 	trap **wasm_trap_t,
-) uintptr // returns *wasmtime_error_t
+) uintptr                                                                                   // returns *wasmtime_error_t
+var wasm_globaltype_new func(content *wasm_valtype_t, mutability wasm_mutability_t) uintptr // returns *wasm_globaltype_t
+var wasm_globaltype_content func(ptr uintptr) *wasm_valtype_t                               // returns *wasm_valtype_t
+var wasm_globaltype_mutability func(ptr uintptr) wasm_mutability_t                          // returns wasm_mutability_t
+var wasm_globaltype_delete func(ptr uintptr)                                                // *wasm_globaltype_t
+var wasm_externtype_as_globaltype func(ptr uintptr) uintptr                                 // returns *wasm_globaltype_t
+var wasm_externtype_as_functype_const func(ptr uintptr) uintptr                             // returns *wasm_functype_t
+var wasm_globaltype_as_externtype_const func(ptr uintptr) uintptr                           // returns *wasm_externtype_t
 
 var libshimsptr uintptr
 var go_wasmtime_val_i32_set func(ptr *wasmtime_val_t, val int32)
@@ -110,6 +117,13 @@ func init() {
 	purego.RegisterLibFunc(&wasmtime_extern_delete, libptr, "wasmtime_extern_delete")
 	purego.RegisterLibFunc(&wasmtime_extern_type, libptr, "wasmtime_extern_type")
 	purego.RegisterLibFunc(&wasmtime_instance_new, libptr, "wasmtime_instance_new")
+	purego.RegisterLibFunc(&wasm_globaltype_new, libptr, "wasm_globaltype_new")
+	purego.RegisterLibFunc(&wasm_globaltype_content, libptr, "wasm_globaltype_content")
+	purego.RegisterLibFunc(&wasm_globaltype_mutability, libptr, "wasm_globaltype_mutability")
+	purego.RegisterLibFunc(&wasm_globaltype_delete, libptr, "wasm_globaltype_delete")
+	purego.RegisterLibFunc(&wasm_externtype_as_globaltype, libptr, "wasm_externtype_as_globaltype")
+	purego.RegisterLibFunc(&wasm_externtype_as_functype_const, libptr, "wasm_externtype_as_functype_const")
+	purego.RegisterLibFunc(&wasm_globaltype_as_externtype_const, libptr, "wasm_globaltype_as_externtype_const")
 
 	libshims, err := findWasmtimeShims()
 	if err != nil {
