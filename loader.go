@@ -64,15 +64,21 @@ var wasmtime_memorytype_minimum func(ptr uintptr) uint32
 var wasmtime_memorytype_maximum func(ptr uintptr, size *uint64) bool // returns bool, size uint32
 var wasmtime_memorytype_is64 func(ptr uintptr) bool
 var wasmtime_memorytype_isshared func(ptr uintptr) bool
-var wasm_memorytype_as_externtype_const func(ptr uintptr) uintptr       // returns *wasm_externtype_t
-var wasm_memorytype_delete func(ptr uintptr)                            // *wasm_memorytype_t
-var wasm_externtype_as_memorytype func(ptr uintptr) uintptr             // returns *wasm_memorytype_t
-var wasm_tabletype_new func(ptr uintptr, limits *wasm_limits_t) uintptr // returns *wasm_tabletype_t
-var wasm_tabletype_element func(ptr uintptr) uintptr                    // *wasm_valtype_t
-var wasm_tabletype_limits func(ptr uintptr) uintptr                     // returns *wasm_limits_t
-var wasm_tabletype_delete func(ptr uintptr)                             // *wasm_tabletype_t
-var wasm_tabletype_as_externtype_const func(ptr uintptr) uintptr        // returns *wasm_externtype_t
-var wasm_externtype_as_tabletype func(ptr uintptr) uintptr              // returns *wasm_tabletype_t
+var wasm_memorytype_as_externtype_const func(ptr uintptr) uintptr                // returns *wasm_externtype_t
+var wasm_memorytype_delete func(ptr uintptr)                                     // *wasm_memorytype_t
+var wasm_externtype_as_memorytype func(ptr uintptr) uintptr                      // returns *wasm_memorytype_t
+var wasm_tabletype_new func(ptr uintptr, limits *wasm_limits_t) uintptr          // returns *wasm_tabletype_t
+var wasm_tabletype_element func(ptr uintptr) uintptr                             // *wasm_valtype_t
+var wasm_tabletype_limits func(ptr uintptr) uintptr                              // returns *wasm_limits_t
+var wasm_tabletype_delete func(ptr uintptr)                                      // *wasm_tabletype_t
+var wasm_tabletype_as_externtype_const func(ptr uintptr) uintptr                 // returns *wasm_externtype_t
+var wasm_externtype_as_tabletype func(ptr uintptr) uintptr                       // returns *wasm_tabletype_t
+var wasm_byte_vec_new_uninitialized func(vec *wasm_byte_vec_t, size int) uintptr // returns *wasm_byte_vec_t
+var wasm_externtype_copy func(ptr uintptr) uintptr                               // returns *wasm_externtype_t
+var wasm_exporttype_new func(name *wasm_byte_vec_t, ty uintptr) uintptr          // returns *wasm_exporttype_t
+var wasm_exporttype_delete func(ptr uintptr)                                     // *wasm_exporttype_t
+var wasm_exporttype_name func(ptr uintptr) uintptr                               // returns *wasm_byte_vec_t
+var wasm_exporttype_type func(ptr uintptr) uintptr                               // returns *wasm_externtype_t
 
 var libshimsptr uintptr
 var go_wasmtime_val_i32_set func(ptr *wasmtime_val_t, val int32)
@@ -153,6 +159,12 @@ func init() {
 	purego.RegisterLibFunc(&wasm_tabletype_as_externtype_const, libptr, "wasm_tabletype_as_externtype_const")
 	purego.RegisterLibFunc(&wasmtime_context_get_data, libptr, "wasmtime_context_get_data")
 	purego.RegisterLibFunc(&wasm_externtype_as_tabletype, libptr, "wasm_externtype_as_tabletype")
+	purego.RegisterLibFunc(&wasm_byte_vec_new_uninitialized, libptr, "wasm_byte_vec_new_uninitialized")
+	purego.RegisterLibFunc(&wasm_externtype_copy, libptr, "wasm_externtype_copy")
+	purego.RegisterLibFunc(&wasm_exporttype_new, libptr, "wasm_exporttype_new")
+	purego.RegisterLibFunc(&wasm_exporttype_delete, libptr, "wasm_exporttype_delete")
+	purego.RegisterLibFunc(&wasm_exporttype_name, libptr, "wasm_exporttype_name")
+	purego.RegisterLibFunc(&wasm_exporttype_type, libptr, "wasm_exporttype_type")
 
 	libshims, err := findWasmtimeShims()
 	if err != nil {

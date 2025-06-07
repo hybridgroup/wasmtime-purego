@@ -15,7 +15,7 @@ func TestMemoryType(t *testing.T) {
 	require.NotNil(t, ty2)
 	require.Nil(t, ty.AsExternType().FuncType())
 	require.Nil(t, ty.AsExternType().GlobalType())
-	//require.Nil(t, ty.AsExternType().TableType())
+	require.Nil(t, ty.AsExternType().TableType())
 }
 
 // func TestMemoryType64(t *testing.T) {
