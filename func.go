@@ -13,7 +13,7 @@ import (
 // The module instance is used to resolve references to other definitions during execution of the function.
 // Read more in [spec](https://webassembly.github.io/spec/core/exec/runtime.html#function-instances)
 type Func struct {
-	val unsafe.Pointer // C.wasmtime_func_t
+	val uintptr // C.wasmtime_func_t
 }
 
 // Caller is provided to host-defined functions when they're invoked from
@@ -26,7 +26,7 @@ type Caller struct {
 	// Note that unlike other structures in these bindings this is named `ptr`
 	// instead of `_ptr` because no finalizer is configured with `Caller` so it's
 	// ok to access this raw value.
-	ptr unsafe.Pointer //*C.wasmtime_caller_t
+	ptr uintptr //*C.wasmtime_caller_t
 }
 
 type wasmtime_func_t struct {
@@ -61,7 +61,7 @@ func NewFunc(
 
 	var ret wasmtime_func_t
 	wasmtime_func_new(
-		uintptr(store.Context()),
+		store.Context(),
 		ty.ptr(),
 		purego.NewCallback(goTrampolineNew),
 		idx,
@@ -72,7 +72,7 @@ func NewFunc(
 	runtime.KeepAlive(store)
 	runtime.KeepAlive(ty)
 
-	return mkFunc(&ret)
+	return mkFunc(uintptr(unsafe.Pointer(&ret)))
 }
 
 //export goTrampolineNew
@@ -83,8 +83,8 @@ func goTrampolineNew(
 	argsNum int,
 	resultsPtr uintptr,
 	resultsNum int) uintptr {
-	caller := &Caller{ptr: unsafe.Pointer(callerPtr)}
-	defer func() { caller.ptr = nil }()
+	caller := &Caller{ptr: callerPtr}
+	defer func() { caller.ptr = uintptr(0) }()
 	data := getDataInStore(caller)
 	entry := data.getFuncNew(int(env))
 
@@ -177,7 +177,7 @@ func WrapFunc(
 
 	var ret wasmtime_func_t
 	wasmtime_func_new(
-		uintptr(store.Context()),
+		store.Context(),
 		wasmTy.ptr(),
 		purego.NewCallback(goTrampolineWrap),
 		idx,
@@ -186,7 +186,7 @@ func WrapFunc(
 	)
 	runtime.KeepAlive(store)
 	runtime.KeepAlive(wasmTy)
-	return mkFunc(&ret)
+	return mkFunc(uintptr(unsafe.Pointer(&ret)))
 }
 
 func inferFuncType(val reflect.Value) *FuncType {
@@ -255,8 +255,8 @@ func goTrampolineWrap(
 	resultsNum int) uintptr {
 	// Convert all our parameters to `[]reflect.Value`, taking special care
 	// for `*Caller` but otherwise reading everything through `Val`.
-	caller := &Caller{ptr: unsafe.Pointer(callerPtr)}
-	defer func() { caller.ptr = nil }()
+	caller := &Caller{ptr: callerPtr}
+	defer func() { caller.ptr = uintptr(0) }()
 	data := getDataInStore(caller)
 	entry := data.getFuncWrap(int(env))
 
@@ -326,8 +326,15 @@ func goTrampolineWrap(
 	return uintptr(0)
 }
 
-func mkFunc(val *wasmtime_func_t) *Func {
-	return &Func{unsafe.Pointer(val)}
+func mkFunc(val uintptr) *Func {
+	return &Func{val}
+}
+
+// Type returns the type of this func
+func (f *Func) Type(store Storelike) *FuncType {
+	ptr := wasmtime_func_type(store.Context(), f.val)
+	runtime.KeepAlive(store)
+	return mkFuncType(ptr, nil)
 }
 
 // Implementation of the `AsExtern` interface for `Func`
@@ -338,11 +345,11 @@ func (f *Func) AsExtern() wasmtime_extern_t {
 }
 
 // Implementation of the `Storelike` interface for `Caller`.
-func (c *Caller) Context() unsafe.Pointer {
-	if c.ptr == nil {
+func (c *Caller) Context() uintptr {
+	if c.ptr == uintptr(0) {
 		panic("cannot use caller after host function returns")
 	}
-	return unsafe.Pointer(wasmtime_caller_context(uintptr(c.ptr)))
+	return wasmtime_caller_context(c.ptr)
 }
 
 // Shim function that's expected to wrap any invocations of WebAssembly from Go

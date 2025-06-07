@@ -76,43 +76,43 @@ func (e *Extern) Func() *Func {
 	if ptr.kind != WASMTIME_EXTERN_FUNC {
 		return nil
 	}
-	ret := mkFunc((*wasmtime_func_t)(unsafe.Pointer(go_wasmtime_extern_func_get(ptr))))
+	ret := mkFunc(go_wasmtime_extern_func_get(ptr))
 	runtime.KeepAlive(e)
 	return ret
 }
 
-// // Global returns a Global if this export is a global or nil otherwise
-// func (e *Extern) Global() *Global {
-// 	ptr := e.ptr()
-// 	if ptr.kind != C.WASMTIME_EXTERN_GLOBAL {
-// 		return nil
-// 	}
-// 	ret := mkGlobal(C.go_wasmtime_extern_global_get(ptr))
-// 	runtime.KeepAlive(e)
-// 	return ret
-// }
+// Global returns a Global if this export is a global or nil otherwise
+func (e *Extern) Global() *Global {
+	ptr := (*wasmtime_extern_t)(unsafe.Pointer(e.ptr()))
+	if ptr.kind != WASMTIME_EXTERN_GLOBAL {
+		return nil
+	}
+	ret := mkGlobal(go_wasmtime_extern_global_get(ptr))
+	runtime.KeepAlive(e)
+	return ret
+}
 
-// // Memory returns a Memory if this export is a memory or nil otherwise
-// func (e *Extern) Memory() *Memory {
-// 	ptr := e.ptr()
-// 	if ptr.kind != C.WASMTIME_EXTERN_MEMORY {
-// 		return nil
-// 	}
-// 	ret := mkMemory(C.go_wasmtime_extern_memory_get(ptr))
-// 	runtime.KeepAlive(e)
-// 	return ret
-// }
+// Memory returns a Memory if this export is a memory or nil otherwise
+func (e *Extern) Memory() *Memory {
+	ptr := (*wasmtime_extern_t)(unsafe.Pointer(e.ptr()))
+	if ptr.kind != WASMTIME_EXTERN_MEMORY {
+		return nil
+	}
+	ret := mkMemory(go_wasmtime_extern_memory_get(ptr))
+	runtime.KeepAlive(e)
+	return ret
+}
 
-// // Table returns a Table if this export is a table or nil otherwise
-// func (e *Extern) Table() *Table {
-// 	ptr := e.ptr()
-// 	if ptr.kind != C.WASMTIME_EXTERN_TABLE {
-// 		return nil
-// 	}
-// 	ret := mkTable(C.go_wasmtime_extern_table_get(ptr))
-// 	runtime.KeepAlive(e)
-// 	return ret
-// }
+// Table returns a Table if this export is a table or nil otherwise
+func (e *Extern) Table() *Table {
+	ptr := (*wasmtime_extern_t)(unsafe.Pointer(e.ptr()))
+	if ptr.kind != WASMTIME_EXTERN_TABLE {
+		return nil
+	}
+	ret := mkTable(go_wasmtime_extern_table_get(ptr))
+	runtime.KeepAlive(e)
+	return ret
+}
 
 func (e *Extern) AsExtern() wasmtime_extern_t {
 	return *(*wasmtime_extern_t)(unsafe.Pointer(e.ptr()))
