@@ -4,6 +4,8 @@ import (
 	"runtime"
 	"sync"
 	"unsafe"
+
+	"github.com/ebitengine/purego"
 )
 
 var gExternrefLock sync.Mutex
@@ -61,37 +63,46 @@ func ValExternref(val interface{}) Val {
 	return Val{kind: uint8(KindExternref), val: val}
 }
 
+//export goFinalizeExternref
+func goFinalizeExternref(env unsafe.Pointer) {
+	idx := int(uintptr(env)) - 1
+	gExternrefLock.Lock()
+	defer gExternrefLock.Unlock()
+	delete(gExternrefMap, idx)
+	gExternrefSlab.deallocate(idx)
+}
+
 // TODO: Implement the `Val` methods to convert to/from C types
 // that are part of a `wasmtime_val_t`. which contains a union.
 // How do we do that using purego with compiling some kind of wrapper?
 func mkVal(store Storelike, src *wasmtime_val_t) Val {
 	switch src.kind {
-	case 0:
+	case uint8(KindI32):
 		return ValI32(int32(go_wasmtime_val_i32_get(src)))
-	case 1:
+	case uint8(KindI64):
 		return ValI64(int64(go_wasmtime_val_i64_get(src)))
-	case 2:
+	case uint8(KindF32):
 		return ValF32(float32(go_wasmtime_val_f32_get(src)))
-	case 3:
+	case uint8(KindF64):
 		return ValF64(float64(go_wasmtime_val_f64_get(src)))
-	case 128:
+	case uint8(KindFuncref):
 		val := go_wasmtime_val_funcref_get(src)
 		if val.store_id == 0 {
 			return ValFuncref(nil)
 		} else {
-			return ValFuncref(mkFunc(val))
+			return ValFuncref(mkFunc(uintptr(unsafe.Pointer(val))))
 		}
-		// case 129:
-		// 	val := go_wasmtime_val_externref_get(src)
-		// 	if val.store_id == 0 {
-		// 		return ValExternref(nil)
-		// 	}
-		// 	data := wasmtime_externref_data(store.Context(), &val)
-		// 	runtime.KeepAlive(store)
+	case uint8(KindExternref):
+		val := go_wasmtime_val_externref_get(src)
+		// if val.store_id == 0 {
+		// 	return ValExternref(nil)
+		// }
+		data := wasmtime_externref_data(store.Context(), val)
+		runtime.KeepAlive(store)
 
-		// 	gExternrefLock.Lock()
-		// 	defer gExternrefLock.Unlock()
-		// 	return ValExternref(gExternrefMap[int(uintptr(data))-1])
+		gExternrefLock.Lock()
+		defer gExternrefLock.Unlock()
+		return ValExternref(gExternrefMap[int(uintptr(data))-1])
 	}
 	panic("failed to get kind of `Val`")
 }
@@ -210,16 +221,16 @@ func (v Val) initialize(store Storelike, ptr *wasmtime_val_t) {
 		} else {
 			gExternrefLock.Lock()
 			defer gExternrefLock.Unlock()
-			index := gExternrefSlab.allocate()
+			index := gExternrefSlab.allocate() + 1
 			gExternrefMap[index] = v.val
-			// var ref C.wasmtime_externref_t
-			// ok := go_externref_new(store.Context(), C.size_t(index+1), &ref)
-			// runtime.KeepAlive(store)
-			// if ok {
-			// 	go_wasmtime_val_externref_set(ptr, ref)
-			// } else {
-			// 	panic("failed to create an externref")
-			// }
+			var ref uintptr //wasmtime_externref_t
+			ok := wasmtime_externref_new(store.Context(), uint32(index), purego.NewCallback(goFinalizeExternref), &ref)
+			runtime.KeepAlive(store)
+			if ok {
+				go_wasmtime_val_externref_set(ptr, ref)
+			} else {
+				panic("failed to create an externref")
+			}
 		}
 	default:
 		panic("failed to get kind of `Val`")

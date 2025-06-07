@@ -65,37 +65,37 @@ func (ty *ExternType) FuncType() *FuncType {
 	return mkFuncType(ptr, ty.owner())
 }
 
-// // GlobalType returns the underlying `GlobalType` for this `ExternType` if it's a *global* type.
-// // Otherwise returns `nil`.
-// func (ty *ExternType) GlobalType() *GlobalType {
-// 	ptr := wasm_externtype_as_globaltype(ty.ptr())
-// 	if ptr == nil {
-// 		return nil
-// 	}
-// 	return mkGlobalType(ptr, ty.owner())
-// }
+// GlobalType returns the underlying `GlobalType` for this `ExternType` if it's a *global* type.
+// Otherwise returns `nil`.
+func (ty *ExternType) GlobalType() *GlobalType {
+	ptr := wasm_externtype_as_globaltype(ty.ptr())
+	if ptr == uintptr(0) {
+		return nil
+	}
+	return mkGlobalType(ptr, ty.owner())
+}
 
-// // TableType returns the underlying `TableType` for this `ExternType` if it's a *table* type.
-// // Otherwise returns `nil`.
-// func (ty *ExternType) TableType() *TableType {
-// 	ptr := wasm_externtype_as_tabletype(ty.ptr())
-// 	if ptr == nil {
-// 		return nil
-// 	}
-// 	return mkTableType(ptr, ty.owner())
-// }
+// TableType returns the underlying `TableType` for this `ExternType` if it's a *table* type.
+// Otherwise returns `nil`.
+func (ty *ExternType) TableType() *TableType {
+	ptr := wasm_externtype_as_tabletype(ty.ptr())
+	if ptr == uintptr(0) {
+		return nil
+	}
+	return mkTableType(ptr, ty.owner())
+}
 
-// // MemoryType returns the underlying `MemoryType` for this `ExternType` if it's a *memory* type.
-// // Otherwise returns `nil`.
-// func (ty *ExternType) MemoryType() *MemoryType {
-// 	ptr := wasm_externtype_as_memorytype(ty.ptr())
-// 	if ptr == nil {
-// 		return nil
-// 	}
-// 	return mkMemoryType(ptr, ty.owner())
-// }
+// MemoryType returns the underlying `MemoryType` for this `ExternType` if it's a *memory* type.
+// Otherwise returns `nil`.
+func (ty *ExternType) MemoryType() *MemoryType {
+	ptr := wasm_externtype_as_memorytype(ty.ptr())
+	if ptr == uintptr(0) {
+		return nil
+	}
+	return mkMemoryType(ptr, ty.owner())
+}
 
-// // AsExternType returns this type itself
-// func (ty *ExternType) AsExternType() *ExternType {
-// 	return ty
-// }
+// AsExternType returns this type itself
+func (ty *ExternType) AsExternType() *ExternType {
+	return ty
+}

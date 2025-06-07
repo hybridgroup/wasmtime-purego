@@ -37,7 +37,7 @@ func TestFuncType(t *testing.T) {
 	ty = NewFuncType([]*ValType{}, []*ValType{})
 	ty2 := ty.AsExternType().FuncType()
 	require.NotNil(t, ty2)
-	// require.Nil(t, ty.AsExternType().GlobalType())
-	// require.Nil(t, ty.AsExternType().MemoryType())
-	// require.Nil(t, ty.AsExternType().TableType())
+	require.Nil(t, ty.AsExternType().GlobalType())
+	require.Nil(t, ty.AsExternType().MemoryType())
+	require.Nil(t, ty.AsExternType().TableType())
 }

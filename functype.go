@@ -38,7 +38,7 @@ func mkValTypeList(tys []*ValType) wasm_valtype_vec_t {
 	base := unsafe.Pointer(vec.data)
 	for i, ty := range tys {
 		ptr := wasm_valtype_new(wasm_valtype_kind(ty.ptr()))
-		*(**wasm_valtype_t)(unsafe.Pointer(uintptr(base) + unsafe.Sizeof(ptr)*uintptr(i))) = ptr
+		*(**wasm_valtype_t)(unsafe.Pointer(uintptr(base) + unsafe.Sizeof(ptr)*uintptr(i))) = (*wasm_valtype_t)(unsafe.Pointer(ptr))
 	}
 	runtime.KeepAlive(tys)
 	return vec
@@ -101,7 +101,7 @@ func (ty *FuncType) convertTypeList(list *wasm_valtype_vec_t) []*ValType {
 	var ptr *wasm_valtype_t
 	for i := 0; i < int(list.size); i++ {
 		ptr := *(**wasm_valtype_t)(unsafe.Pointer(uintptr(base) + unsafe.Sizeof(ptr)*uintptr(i)))
-		ty := mkValType(ptr, ty.owner())
+		ty := mkValType(uintptr(unsafe.Pointer(ptr)), ty.owner())
 		ret[i] = ty
 	}
 	return ret

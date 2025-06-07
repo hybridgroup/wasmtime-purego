@@ -54,7 +54,7 @@ type wasm_valtype_t struct {
 
 // ValType means one of the value types, which classify the individual values that WebAssembly code can compute with and the values that a variable accepts.
 type ValType struct {
-	_ptr   *wasm_valtype_t
+	_ptr   uintptr // *wasm_valtype_t
 	_owner interface{}
 }
 
@@ -64,7 +64,7 @@ func NewValType(kind ValKind) *ValType {
 	return mkValType(ptr, nil)
 }
 
-func mkValType(ptr *wasm_valtype_t, owner interface{}) *ValType {
+func mkValType(ptr uintptr, owner interface{}) *ValType {
 	valtype := &ValType{_ptr: ptr, _owner: owner}
 	if owner == nil {
 		runtime.SetFinalizer(valtype, func(valtype *ValType) {
@@ -87,9 +87,9 @@ func (t *ValType) String() string {
 	return t.Kind().String()
 }
 
-func (t *ValType) ptr() *wasm_valtype_t {
+func (t *ValType) ptr() uintptr {
 	ret := t._ptr
-	if ret == nil {
+	if ret == uintptr(0) {
 		panic("object has been closed already")
 	}
 	//maybeGC()
@@ -100,10 +100,10 @@ func (t *ValType) ptr() *wasm_valtype_t {
 //
 // For more information see the documentation for engine.Close()
 func (ty *ValType) Close() {
-	if ty._ptr == nil || ty._owner != nil {
+	if ty._ptr == uintptr(0) || ty._owner != nil {
 		return
 	}
 	runtime.SetFinalizer(ty, nil)
 	wasm_valtype_delete(ty._ptr)
-	ty._ptr = nil
+	ty._ptr = uintptr(0)
 }

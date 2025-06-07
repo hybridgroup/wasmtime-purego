@@ -13,7 +13,7 @@ import (
 // The module instance is used to resolve references to other definitions during execution of the function.
 // Read more in [spec](https://webassembly.github.io/spec/core/exec/runtime.html#function-instances)
 type Func struct {
-	val unsafe.Pointer // C.wasmtime_func_t
+	val uintptr // C.wasmtime_func_t
 }
 
 // Caller is provided to host-defined functions when they're invoked from
@@ -26,7 +26,7 @@ type Caller struct {
 	// Note that unlike other structures in these bindings this is named `ptr`
 	// instead of `_ptr` because no finalizer is configured with `Caller` so it's
 	// ok to access this raw value.
-	ptr unsafe.Pointer //*C.wasmtime_caller_t
+	ptr uintptr //*C.wasmtime_caller_t
 }
 
 type wasmtime_func_t struct {
@@ -61,7 +61,7 @@ func NewFunc(
 
 	var ret wasmtime_func_t
 	wasmtime_func_new(
-		uintptr(store.Context()),
+		store.Context(),
 		ty.ptr(),
 		purego.NewCallback(goTrampolineNew),
 		idx,
@@ -72,7 +72,7 @@ func NewFunc(
 	runtime.KeepAlive(store)
 	runtime.KeepAlive(ty)
 
-	return mkFunc(&ret)
+	return mkFunc(uintptr(unsafe.Pointer(&ret)))
 }
 
 //export goTrampolineNew
@@ -83,8 +83,8 @@ func goTrampolineNew(
 	argsNum int,
 	resultsPtr uintptr,
 	resultsNum int) uintptr {
-	caller := &Caller{ptr: unsafe.Pointer(callerPtr)}
-	defer func() { caller.ptr = nil }()
+	caller := &Caller{ptr: callerPtr}
+	defer func() { caller.ptr = uintptr(0) }()
 	data := getDataInStore(caller)
 	entry := data.getFuncNew(int(env))
 
@@ -103,7 +103,7 @@ func goTrampolineNew(
 		defer func() { lastPanic = recover() }()
 		results, trap = entry.callback(caller, params)
 		if trap != nil {
-			if trap._ptr == nil {
+			if trap._ptr == uintptr(0) {
 				panic("returned an already-returned trap")
 			}
 			return
@@ -126,7 +126,7 @@ func goTrampolineNew(
 	if trap != nil {
 		runtime.SetFinalizer(trap, nil)
 		ret := trap.ptr()
-		trap._ptr = nil
+		trap._ptr = uintptr(0)
 		return uintptr(ret)
 	}
 
@@ -177,7 +177,7 @@ func WrapFunc(
 
 	var ret wasmtime_func_t
 	wasmtime_func_new(
-		uintptr(store.Context()),
+		store.Context(),
 		wasmTy.ptr(),
 		purego.NewCallback(goTrampolineWrap),
 		idx,
@@ -186,7 +186,7 @@ func WrapFunc(
 	)
 	runtime.KeepAlive(store)
 	runtime.KeepAlive(wasmTy)
-	return mkFunc(&ret)
+	return mkFunc(uintptr(unsafe.Pointer(&ret)))
 }
 
 func inferFuncType(val reflect.Value) *FuncType {
@@ -255,8 +255,8 @@ func goTrampolineWrap(
 	resultsNum int) uintptr {
 	// Convert all our parameters to `[]reflect.Value`, taking special care
 	// for `*Caller` but otherwise reading everything through `Val`.
-	caller := &Caller{ptr: unsafe.Pointer(callerPtr)}
-	defer func() { caller.ptr = nil }()
+	caller := &Caller{ptr: callerPtr}
+	defer func() { caller.ptr = uintptr(0) }()
 	data := getDataInStore(caller)
 	entry := data.getFuncWrap(int(env))
 
@@ -310,8 +310,8 @@ func goTrampolineWrap(
 			if val != nil {
 				runtime.SetFinalizer(val, nil)
 				ret := val._ptr
-				val._ptr = nil
-				if ret == nil {
+				val._ptr = uintptr(0)
+				if ret == uintptr(0) {
 					data.lastPanic = "cannot return trap twice"
 					return uintptr(0)
 				} else {
@@ -326,14 +326,74 @@ func goTrampolineWrap(
 	return uintptr(0)
 }
 
-func mkFunc(val *wasmtime_func_t) *Func {
-	return &Func{unsafe.Pointer(val)}
+func mkFunc(val uintptr) *Func {
+	return &Func{val}
+}
+
+// Type returns the type of this func
+func (f *Func) Type(store Storelike) *FuncType {
+	ptr := wasmtime_func_type(store.Context(), f.val)
+	runtime.KeepAlive(store)
+	return mkFuncType(ptr, nil)
+}
+
+// Implementation of the `AsExtern` interface for `Func`
+func (f *Func) AsExtern() wasmtime_extern_t {
+	ret := wasmtime_extern_t{kind: WASMTIME_EXTERN_FUNC}
+	go_wasmtime_extern_func_set(&ret, uintptr(f.val))
+	return ret
 }
 
 // Implementation of the `Storelike` interface for `Caller`.
-func (c *Caller) Context() unsafe.Pointer {
-	if c.ptr == nil {
+func (c *Caller) Context() uintptr {
+	if c.ptr == uintptr(0) {
 		panic("cannot use caller after host function returns")
 	}
-	return unsafe.Pointer(wasmtime_caller_context(uintptr(c.ptr)))
+	return wasmtime_caller_context(c.ptr)
+}
+
+// Shim function that's expected to wrap any invocations of WebAssembly from Go
+// itself.
+//
+// This is used to handle traps and error returns from any invocation of
+// WebAssembly. This will also automatically propagate panics that happen within
+// Go from one end back to this original invocation point.
+//
+// The `store` object is the context being used for the invocation, and `wasm`
+// is the closure which will internally execute WebAssembly. A trap pointer is
+// provided to the closure and it's expected that the closure returns an error.
+func enterWasm(store Storelike, wasm func(**wasm_trap_t) uintptr) error {
+	// Load the internal `storeData` that our `store` references, which is
+	// used for handling panics which we are going to use here.
+	data := getDataInStore(store)
+
+	var trap *wasm_trap_t
+	err := wasm(&trap)
+
+	// Take ownership of any returned values to ensure we properly run
+	// destructors for them.
+	var wrappedTrap *Trap
+	var wrappedError error
+	if trap != nil {
+		wrappedTrap = mkTrap(uintptr(unsafe.Pointer(trap)))
+	}
+	if err != uintptr(0) {
+		wrappedError = mkError(err)
+	}
+
+	// Check to see if wasm panicked, and if it did then we need to
+	// propagate that. Note that this happens after we take ownership of
+	// return values to ensure they're cleaned up properly.
+	if data.lastPanic != nil {
+		lastPanic := data.lastPanic
+		data.lastPanic = nil
+		panic(lastPanic)
+	}
+
+	// If there wasn't a panic then we determine whether to return the trap
+	// or the error.
+	if wrappedTrap != nil {
+		return wrappedTrap
+	}
+	return wrappedError
 }

@@ -25,7 +25,7 @@ type Store struct {
 // into functions that take a `Storelike`.
 type Storelike interface {
 	// Returns the wasmtime context pointer this store is attached to.
-	Context() unsafe.Pointer // *C.wasmtime_context_t
+	Context() uintptr // *C.wasmtime_context_t
 }
 
 var gStoreLock sync.Mutex
@@ -93,11 +93,11 @@ func (store *Store) Close() {
 }
 
 // Implementation of the `Storelike` interface
-func (store *Store) Context() unsafe.Pointer {
+func (store *Store) Context() uintptr {
 	ret := wasmtime_store_context(store.ptr())
 	//maybeGC()
 	runtime.KeepAlive(store)
-	return unsafe.Pointer(ret)
+	return ret
 }
 
 //export goFinalizeStore
